@@ -7,6 +7,7 @@ plugins {
 
 group = "me.cjgj"
 version = "1.0-SNAPSHOT"
+val exposedVersion: String by project
 
 repositories {
     mavenCentral()
@@ -16,7 +17,9 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("it.skrape:skrapeit:1.2.0")
     implementation(kotlin("script-runtime"))
-    implementation("org.jetbrains.exposed:exposed-core:0.37.3")
+    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.xerial:sqlite-jdbc:3.36.0.3")
 }
 
 tasks.test {
