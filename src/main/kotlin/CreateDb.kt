@@ -52,7 +52,7 @@ val cardNamePattern = Regex("^([^(]+)( \\(([123])\\))?$")
 object Cards : Table() {
     val setCode = char("set_code", 3)
     val setIndex = integer("set_index").check("CHECK_SET_INDEX") { it.greaterEq(0) }
-    val name = text("name") // with pitch value (eg. "(3)") removed
+    val name = text("name") // with pitch value suffix (eg. "(3)") removed
     val pitchValue = integer("pitch_value").check("CHECK_PITCH") { it.between(1, 3) }.nullable()
     val imageId = text("image_id")
 
@@ -72,7 +72,7 @@ fun main() {
         val elements = skrape(HttpFetcher) {
             request {
                 url = galleryUrlTemplate.format(set)
-                timeout = 15_000
+                timeout = 15_000 // ms
             }.also { println("scraping ${it.preparedRequest.url} at ${LocalDateTime.now()}") }
             response {
                 htmlDocument {
@@ -112,5 +112,6 @@ fun main() {
         // Sleep for a bit to avoid hitting any rate limits
         println("Processed ${elements.size} cards from $set, sleeping for 10 seconds...")
         TimeUnit.SECONDS.sleep(10)
+
     }
 }
