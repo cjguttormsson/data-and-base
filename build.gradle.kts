@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation("it.skrape:skrapeit:1.2.0")
+    implementation("it.skrape:skrapeit:1.2.1")
     implementation(kotlin("script-runtime"))
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
