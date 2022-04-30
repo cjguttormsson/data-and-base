@@ -145,6 +145,5 @@ fun main() {
         val urlSegmentName = galleryUrl.split("/").last { it.isNotEmpty() }
         println("Processed ${elements.size} cards from $urlSegmentName, sleeping for $t seconds...")
         TimeUnit.SECONDS.sleep(t)
-
     }
 }
