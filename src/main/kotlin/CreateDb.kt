@@ -24,21 +24,21 @@ val galleryUrls = listOf(
     "https://fabtcg.com/resources/card-galleries/tales-aria-booster/",
     "https://fabtcg.com/resources/card-galleries/everfest-booster/",
 
-    "https://fabtcg.com/resources/card-galleries/tales-aria/oldhim-blitz-deck/",
-    "https://fabtcg.com/resources/card-galleries/tales-aria/lexi-blitz-deck/",
-    "https://fabtcg.com/resources/card-galleries/tales-aria/briar-blitz-deck/",
+    "https://fabtcg.com/resources/card-galleries/welcome-deck-2019/",
 
-    "https://fabtcg.com/products/booster-set/monarch/monarch-blitz-decks/prism-blitz-deck/",
+    "https://fabtcg.com/resources/card-galleries/bravo-hero-deck/",
+    "https://fabtcg.com/resources/card-galleries/dorinthea-hero-deck/",
+    "https://fabtcg.com/resources/card-galleries/katsu-hero-deck/",
+    "https://fabtcg.com/resources/card-galleries/rhinar-hero-deck/",
+
     "https://fabtcg.com/products/booster-set/monarch/monarch-blitz-decks/boltyn-blitz-deck/",
     "https://fabtcg.com/products/booster-set/monarch/monarch-blitz-decks/chane-blitz-deck/",
     "https://fabtcg.com/products/booster-set/monarch/monarch-blitz-decks/levia-blitz-deck/",
+    "https://fabtcg.com/products/booster-set/monarch/monarch-blitz-decks/prism-blitz-deck/",
 
-    "https://fabtcg.com/resources/card-galleries/rhinar-hero-deck/",
-    "https://fabtcg.com/resources/card-galleries/bravo-hero-deck/",
-    "https://fabtcg.com/resources/card-galleries/katsu-hero-deck/",
-    "https://fabtcg.com/resources/card-galleries/dorinthea-hero-deck/",
-
-    "https://fabtcg.com/resources/card-galleries/welcome-deck-2019/",
+    "https://fabtcg.com/resources/card-galleries/tales-aria/briar-blitz-deck/",
+    "https://fabtcg.com/resources/card-galleries/tales-aria/lexi-blitz-deck/",
+    "https://fabtcg.com/resources/card-galleries/tales-aria/oldhim-blitz-deck/",
 )
 
 // Some cards don't follow the convention for image names, this map fixes them
