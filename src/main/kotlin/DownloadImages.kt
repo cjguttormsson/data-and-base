@@ -13,7 +13,10 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
 import java.sql.Connection
 
+// Simple wrapper for a card in the db, used to avoid a conflict between CIO and transaction { }
 data class Card(val name: String, val imageId: String, val pitchValue: Int?, val setCode: String)
+
+val pitchValToRYB = mapOf(1 to "Red", 2 to "Yellow", 3 to "Blue")
 
 suspend fun main() {
     // Initialize the db connection and the db itself
@@ -23,10 +26,9 @@ suspend fun main() {
         SchemaUtils.createMissingTablesAndColumns(Cards)
     }
 
-    val userDir = FileUtils.getUserDirectory()
-    val baseDir = File(userDir, "Downloaded FaB Images").apply { mkdir() }
+    // Initialize the output dir to be written to, create an HttpClient, and get a list of all cards
+    val baseDir = File(FileUtils.getUserDirectory(), "Downloaded FaB Images").apply { mkdir() }
     val httpClient = HttpClient(CIO)
-
     val allCards = transaction {
         Cards.selectAll().map {
             Card(
@@ -38,28 +40,32 @@ suspend fun main() {
         }
     }
 
+    // Download the image of each card and store it in the folder for its set
     allCards.forEach { card ->
         val setFolder = File(baseDir, card.setCode).apply { mkdir() }
 
-        val pitch = mapOf(1 to "Red", 2 to "Yellow", 3 to "Blue")
-        val nameWithPitch = card.name + (card.pitchValue?.run { " (${pitch[this]})" } ?: "")
-        println("${card.setCode}: $nameWithPitch")
+        val nameWithPitch = card.name + (card.pitchValue?.run { " (${pitchValToRYB[this]})" } ?: "")
+        println("Fetching ${card.setCode}: $nameWithPitch")
 
+        // Download the image
         val response = httpClient.get {
             accept(ContentType.Image.PNG)
-            url {
-                protocol = URLProtocol.HTTPS
-                host = "storage.googleapis.com"
-                path(
-                    "fabmaster", "media", "images", "${card.imageId}.width-450.png"
-                )
-            }
+            url(getUrlForImageId(card.imageId))
             retry {
-                retryOnExceptionOrServerErrors(maxRetries = 3)
+                retryOnExceptionOrServerErrors()
                 exponentialDelay()
             }
         }
 
+        // Save the image
         File(setFolder, "$nameWithPitch.png").writeBytes(response.body())
     }
 }
+
+fun getUrlForImageId(imageId: String) = URLBuilder() .apply {
+    protocol = URLProtocol.HTTPS
+    host = "storage.googleapis.com"
+    path(
+        "fabmaster", "media", "images", "$imageId.width-450.png"
+    )
+}.build()
