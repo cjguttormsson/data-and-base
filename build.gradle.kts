@@ -7,12 +7,12 @@ plugins {
 
 group = "me.cjgj"
 version = "1.0-SNAPSHOT"
-val exposedVersion: String by project
-
 repositories {
     mavenCentral()
 }
 
+val exposedVersion: String by project
+val ktorVersion: String by project
 dependencies {
     testImplementation(kotlin("test"))
     implementation("it.skrape:skrapeit:1.2.1")
@@ -20,6 +20,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.xerial:sqlite-jdbc:3.36.0.3")
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
 }
 
 tasks.test {
