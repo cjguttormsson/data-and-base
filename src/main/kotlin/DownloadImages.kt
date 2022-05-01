@@ -37,13 +37,29 @@ suspend fun main() {
     }
     val baseDir = File(FileUtils.getUserDirectory(), "Downloaded FaB Images").apply { mkdir() }
     val setCodeToFolder =
-        allCards.associate { card -> card.setCode to File(baseDir, card.setCode).apply { mkdir() } }
+        allCards.associate { card ->
+            card.setCode to File(
+                baseDir,
+                card.setCode
+            ).apply {
+                if (!exists()) {
+                    mkdir()
+                }
+            }
+        }
 
     // Download the image of each card and store it in the folder for its set
     allCards.forEach { card ->
 
         val nameWithPitch = card.name + (card.pitchValue?.run { " (${pitchValToRYB[this]})" } ?: "")
-        println("Fetching ${card.setCode}: $nameWithPitch")
+        print("Fetching ${card.setCode}: $nameWithPitch...")
+
+        // If the file exists already, don't both trying to fetch it again
+        val file = File(setCodeToFolder[card.setCode], "$nameWithPitch.png")
+        if (file.exists()) {
+            println("already exists!")
+            return@forEach
+        }
 
         // Download the image
         val response = httpClient.get {
@@ -56,7 +72,8 @@ suspend fun main() {
         }
 
         // Save the image
-        File(setCodeToFolder[card.setCode], "$nameWithPitch.png").writeBytes(response.body())
+        file.writeBytes(response.body())
+        println("done!")
     }
 }
 
