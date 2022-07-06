@@ -23,6 +23,7 @@ val galleryUrls = listOf(
     "https://fabtcg.com/resources/card-galleries/monarch-booster/",
     "https://fabtcg.com/resources/card-galleries/tales-aria-booster/",
     "https://fabtcg.com/resources/card-galleries/everfest-booster/",
+    "https://fabtcg.com/resources/card-galleries/uprising/",
 
     "https://fabtcg.com/resources/card-galleries/welcome-deck-2019/",
 
@@ -60,6 +61,8 @@ val replacementCardIds = mapOf(
     "BRi0111" to "BRI011"
 )
 
+val CARD_URL_UNKNOWN = "https://storage.googleapis.com/fabmaster/media/images/darkness.width-450.png"
+
 // Regexes for parsing the image URLs and names for cards
 val imageIdPattern =
     Regex("https://storage\\.googleapis\\.com/fabmaster/media/images/(.+?)\\.width-\\d+\\.png")
@@ -74,7 +77,7 @@ object Cards : Table() {
     val pitchValue = integer("pitch_value").check("CHECK_PITCH") { it.between(1, 3) }.nullable()
     val imageId = text("image_id")
 
-    override val primaryKey = PrimaryKey(setCode, setIndex)
+    override val primaryKey = PrimaryKey(imageId)
 }
 
 fun main() {
@@ -105,6 +108,11 @@ fun main() {
                     // Extract the needed values for one card and insert them into the db
                     val nameAndPitch = element.findFirst("div.card-details > h5").text
                     val cardUrl = element.findFirst("a > img").attribute("src")
+
+                    // Skip cards marked "Unknown"
+                    if (cardUrl == CARD_URL_UNKNOWN) {
+                        return@transaction
+                    }
 
                     try {
                         val cardImageId = imageIdPattern.find(cardUrl)!!.groupValues[1]
