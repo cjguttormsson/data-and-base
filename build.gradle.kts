@@ -13,9 +13,10 @@ repositories {
 
 val exposedVersion: String by project
 val ktorVersion: String by project
+val skrapeItVersion: String by project
 dependencies {
     testImplementation(kotlin("test"))
-    implementation("it.skrape:skrapeit:1.2.1")
+    implementation("it.skrape:skrapeit:$skrapeItVersion")
     implementation(kotlin("script-runtime"))
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
