@@ -3,13 +3,14 @@ import it.skrape.fetcher.HttpFetcher
 import it.skrape.fetcher.response
 import it.skrape.fetcher.skrape
 import it.skrape.selects.DocElement
+import it.skrape.selects.ElementNotFoundException
+import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.sqlite.SQLiteErrorCode
 import org.sqlite.SQLiteException
 import java.sql.Connection
 import java.time.LocalDateTime
@@ -58,14 +59,21 @@ val replacementCardIds = mapOf(
     "83qQVRV7av7WVwN6jhg0d" to "MON223",
     "322d1Gx66IHv4QNM3gOjV7" to "MON224",
     "h3ntlAv43eGM6Nq3R046zh" to "MON225",
-    "BRi0111" to "BRI011"
+    "BRi0111" to "BRI011",
+    "BVO" to "BVO001",
+    "TEA" to "TEA001",
+    "KSU" to "KSU001",
+    "RNR" to "RNR001",
+    "ICE_CM1lpsjE9_01" to "UPR102",
+    "ICE_CM1lpsjE9_02" to "UPR103",
+    "ICE_CM1lpsjE9_03" to "UPR104",
+    "ICE_CM1lpsjE9_04" to "UPR135"
 )
 
 val CARD_URL_UNKNOWN = "https://storage.googleapis.com/fabmaster/media/images/darkness.width-450.png"
 
 // Regexes for parsing the image URLs and names for cards
-val imageIdPattern =
-    Regex("https://storage\\.googleapis\\.com/fabmaster/media/images/(.+?)\\.width-\\d+\\.png")
+val imageIdPattern = Regex("https://storage\\.googleapis\\.com/fabmaster/media/images/(.+?)\\.width-\\d+\\.png")
 val cardIdPattern = Regex("^([A-Z]{3})[-_]?(\\d{1,3})")
 val cardNamePattern = Regex("^([^(]+)( \\(([123])\\))?$")
 
@@ -102,28 +110,58 @@ fun main() {
             }
         }
 
+        var failedToScrape = 0
+        var cardWasUnknown = 0
+        var failedToParse = 0
+        var failedToInsert = 0
+
         for (element: DocElement in elements) {
+            // Extract the needed values for one card
+            val nameAndPitch: String
+            val cardUrl: String
             try {
+                nameAndPitch = element.findFirst("div.card-details > h5").text
+                cardUrl = element.findFirst("a > img").attribute("src")
+            } catch (e: ElementNotFoundException) {
+                println("Couldn't scrape listblock-item ${element.text}")
+                failedToScrape++
+                continue
+            }
+
+            // Skip cards marked "Unknown" (ie. not yet announced)
+            if (cardUrl == CARD_URL_UNKNOWN) {
+                cardWasUnknown++
+                continue
+            }
+
+            // Try to extract the details
+            var cardImageId: String
+            var cardSetCode: String
+            var cardSetIndex: String
+            var cardName: String
+            var cardPitchValue: String?
+            try {
+                cardImageId = imageIdPattern.find(cardUrl)!!.groupValues[1]
+                cardSetCode = cardIdPattern.find(
+                    replacementCardIds.getOrDefault(cardImageId, cardImageId)
+                )!!.groupValues[1]
+                cardSetIndex = cardIdPattern.find(
+                    replacementCardIds.getOrDefault(cardImageId, cardImageId)
+                )!!.groupValues[2]
+                cardName = cardNamePattern.find(nameAndPitch)!!.groupValues[1]
+                // groupValues would give an empty string here, but we want null
+                cardPitchValue = cardNamePattern.find(nameAndPitch)?.groups?.get(3)?.value
+            } catch (e: NullPointerException) {
+                println("Couldn't create a database entry!\nname: $nameAndPitch\nurl: $cardUrl\n")
+                failedToParse++
+                continue
+            }
+
+
+            try {
+                // Try to insert the card into the db
                 transaction {
-                    // Extract the needed values for one card and insert them into the db
-                    val nameAndPitch = element.findFirst("div.card-details > h5").text
-                    val cardUrl = element.findFirst("a > img").attribute("src")
-
-                    // Skip cards marked "Unknown"
-                    if (cardUrl == CARD_URL_UNKNOWN) {
-                        return@transaction
-                    }
-
                     try {
-                        val cardImageId = imageIdPattern.find(cardUrl)!!.groupValues[1]
-                        val (cardSetCode, cardSetIndex) = cardIdPattern.find(
-                            replacementCardIds.getOrDefault(cardImageId, cardImageId)
-                        )!!.destructured
-                        val cardName = cardNamePattern.find(nameAndPitch)!!.groupValues[1]
-                        // groupValues would give an empty string here, but we want null
-                        val cardPitchValue =
-                            cardNamePattern.find(nameAndPitch)?.groups?.get(3)?.value
-
                         Cards.insert {
                             it[setCode] = cardSetCode
                             it[setIndex] = cardSetIndex.toInt()
@@ -131,27 +169,22 @@ fun main() {
                             it[pitchValue] = cardPitchValue?.toInt()
                             it[imageId] = cardImageId
                         }
-                    } catch (e: NullPointerException) {
-                        println("Couldn't create a database entry!\nname: $nameAndPitch\nurl: $cardUrl\n")
+                    } catch (e: ExposedSQLException) {
+                        e.cause?.let { throw it }
                     }
                 }
             } catch (e: SQLiteException) {
-                // The page for Chane's hero deck has an error where one of the cards has the wrong
-                // image URL ("Rifted Torment (3)" has the image of "Rifted Torment (1)", to be
-                // specific), causing this script to try to insert a duplicate record. Although this
-                // will result in one missing entry from Chane's deck, that card also exists as
-                // MON179.
-                if (e.resultCode.code == SQLiteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY.code) {
-                    continue
-                }
-                throw e
+                failedToInsert++
+                println("Couldn't insert into the db!\nname: $nameAndPitch\ncode: ${e.resultCode}")
             }
         }
 
         // Sleep for a bit to avoid hitting any rate limits
-        val t: Long = 15
+        val t: Long = 2 // seconds
         val urlSegmentName = galleryUrl.split("/").last { it.isNotEmpty() }
         println("Processed ${elements.size} cards from $urlSegmentName, sleeping for $t seconds...")
+        print("$failedToScrape card(s) failed to scrape, $cardWasUnknown unknown card(s), ")
+        println("$failedToParse card(s) failed to parse, and $failedToInsert card(s) failed to insert")
         TimeUnit.SECONDS.sleep(t)
     }
 }
